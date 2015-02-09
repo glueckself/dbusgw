@@ -27,12 +27,29 @@ def get_dbus_service(bus, obj, interface, methodList, propList, parent):
     
     def method_void_factory(name):
         def method(self):
-            self.parent.method_void(name)
+            self.parent.call_method(name)
         method.__name__ = str(name)
         print("Created func object " + str(method.__name__) + ": " + str(method))
         return method
+
+    def Get(self, interface_name, property_name):
+        return self.parent.get_property(property_name)
+
+    def GetAll(self, interface_name):
+        res = dict()
+        for prop in propList:
+            res["prop"] = Get(interface_name, prop)
+        return res
+
+    def Set(self, interface_name, property_name, value):
+        self.parent.set_property(property_name, str(value))
     
     methods=dict()
+    
+    methods["Get"] = dbus.service.method(interface=dbus.PROPERTY_INTERFACE, in_signature="ss" out_signature="v")(Get)
+    methods["GetAll"] = dbus.service.method(interface=dbus.PROPERTY_INTERFACE, in_signature="s" out_signature="a(sv)")(GetAll)
+    methods["Set"] = dbus.service.method(interface=dbus.PROPERTY_INTERFACE, in_signature="ssv" out_signataure="")(Set)
+    
     for method in methodList:
         if '@arg' in method:
             print("Skipping " + str(method))
@@ -40,6 +57,7 @@ def get_dbus_service(bus, obj, interface, methodList, propList, parent):
         else:
             print("Creating method " + method['@name'])
             methods[method['@name']]=dbus.service.method(interface)(method_void_factory(method['@name']))
+
     
     methods.update({'__init__':__init__, 'run':run})
     
@@ -66,17 +84,9 @@ class GwDBusServer(Thread):
         else:
             props=None
             
-        self.bussrv = get_dbus_service(self.bus, self.obj, self.interface, methods, props, self)()
+        self.bussrv = get_dbus_service(self.bus, self.obj, self.interface, methods, props, self.netconn)()
         self.start()
+        return self.bussrv
         
     def run(self):
         self.bussrv.run()
-    
-    def emit_signal(self, signal, *data):
-        pass
-    
-    def handle_properties_signal(*data):
-        pass
-    
-    def method_void(self, name):
-        self.netconn.call_method(name)

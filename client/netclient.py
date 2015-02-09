@@ -13,7 +13,7 @@ class GwNetClient(Thread):
     def run(self):
         dbusInit = self.sock.recv(4092)
         if dbusInit[0:4] == "init":
-            self.dbus.init(self, json.loads(dbusInit[4:]))
+            self.dbus=self.dbus.init(self, json.loads(dbusInit[4:]))
         else:
             print("Invalid init command: " + dbusInit[0:4])
             return
@@ -26,7 +26,11 @@ class GwNetClient(Thread):
     
     def set_property(self, propType, prop, value):
         self.sock.send("pros"+propType+prop+"="+value)
-    
+   
+    def get_property(self, prop):
+        self.sock.send("prog"+prop)
+        
+         
     def emit_signal(self, signal):
         pass
 
